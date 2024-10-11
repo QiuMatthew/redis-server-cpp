@@ -61,7 +61,19 @@ int main(int argc, char **argv) {
 						   (socklen_t *)&client_addr_len);
 	std::cout << "Client connected\n";
 
-	send(client_fd, "+PONG\r\n", 7, 0);
+	while (true) {
+		char *request_msg[100];
+		if (recv(client_fd, (void *)request_msg, 100, 0) == -1) {
+			std::cerr << "receive message failed\n";
+			return 1;
+		}
+		const char *response_to_ping = "+PONG\r\n";
+		if (send(client_fd, (const void *)response_to_ping,
+				 strlen(response_to_ping), 0) == -1) {
+			std::cerr << "send message failed\n";
+			return 1;
+		}
+	}
 
 	close(server_fd);
 
