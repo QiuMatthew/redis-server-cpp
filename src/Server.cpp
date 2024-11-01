@@ -84,11 +84,14 @@ int main(int argc, char **argv) {
 		std::cout << "Received message length: " << request_msg_str.length()
 				  << std::endl;
 		std::cout << "Received message: " << request_msg_str << std::endl;
-		const char *response_to_ping = "+PONG\r\n";
-		if (send(client_fd, (const void *)response_to_ping,
-				 strlen(response_to_ping), 0) == -1) {
-			std::cerr << "send message failed\n";
-			return 1;
+		if (request_msg_str == "ping\r") {
+			std::cout << "Received PING\n";
+			const char *response_to_ping = "+PONG\r\n";
+			if (send(client_fd, (const void *)response_to_ping,
+					 strlen(response_to_ping), 0) == -1) {
+				std::cerr << "send message failed\n";
+				return 1;
+			}
 		}
 	}
 
