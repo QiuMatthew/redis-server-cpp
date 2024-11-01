@@ -8,6 +8,7 @@
 #include <cstring>
 #include <iostream>
 #include <string>
+#include <vector>
 
 std::vector<char> receive_message_until_delimiter(int client_fd,
 												  char delimiter) {
