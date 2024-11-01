@@ -61,32 +61,34 @@ int accept_socket(int server_fd, struct sockaddr_in client_addr,
 }
 
 void handle_client(int client_fd) {
-	std::vector<char> request_msg(100);
-	ssize_t bytes_received =
-		recv(client_fd, request_msg.data(), request_msg.size(), 0);
-	if (bytes_received == -1) {
-		std::cerr << "recv failed\n";
-		exit(1);
-	}
-	if (bytes_received == 0) {
-		std::cout << "Client disconnected\n";
-		return;
-	}
-	std::cout << "Received message length: " << bytes_received << std::endl;
-	std::string request_msg_str(request_msg.begin(),
-								request_msg.begin() + bytes_received);
-	std::cout << "Received message: " << request_msg_str << std::endl;
-
-	// Handle PING command
-	if (request_msg_str == "*1\r\n$4\r\nPING\r\n" ||
-		request_msg_str == "*1\r\n$4\r\nping\r\n") {
-		const char *response_to_ping = "+PONG\r\n";
-		if (send(client_fd, response_to_ping, strlen(response_to_ping), 0) ==
-			-1) {
-			std::cerr << "send message failed\n";
+	while (true) {
+		std::vector<char> request_msg(100);
+		ssize_t bytes_received =
+			recv(client_fd, request_msg.data(), request_msg.size(), 0);
+		if (bytes_received == -1) {
+			std::cerr << "recv failed\n";
 			exit(1);
 		}
-		std::cout << "Sent PONG\n";
+		if (bytes_received == 0) {
+			std::cout << "Client disconnected\n";
+			return;
+		}
+		std::cout << "Received message length: " << bytes_received << std::endl;
+		std::string request_msg_str(request_msg.begin(),
+									request_msg.begin() + bytes_received);
+		std::cout << "Received message: " << request_msg_str << std::endl;
+
+		// Handle PING command
+		if (request_msg_str == "*1\r\n$4\r\nPING\r\n" ||
+			request_msg_str == "*1\r\n$4\r\nping\r\n") {
+			const char *response_to_ping = "+PONG\r\n";
+			if (send(client_fd, response_to_ping, strlen(response_to_ping),
+					 0) == -1) {
+				std::cerr << "send message failed\n";
+				exit(1);
+			}
+			std::cout << "Sent PONG\n";
+		}
 	}
 	return;
 }
