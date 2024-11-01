@@ -93,6 +93,7 @@ int main(int argc, char **argv) {
 	int client_fd = accept_socket(server_fd, client_addr, client_addr_len);
 	std::cout << "Client connected\n";
 
+	// receive and send messages
 	while (true) {
 		std::vector<char> request_msg(100);
 		ssize_t bytes_received =
@@ -109,17 +110,18 @@ int main(int argc, char **argv) {
 		std::string request_msg_str(request_msg.begin(),
 									request_msg.begin() + bytes_received);
 		std::cout << "Received message: " << request_msg_str << std::endl;
+
+		// Handle PING command
 		if (request_msg_str == "*1\r\n$4\r\nPING\r\n" ||
 			request_msg_str == "*1\r\n$4\r\nping\r\n") {
 			const char *response_to_ping = "+PONG\r\n";
-			if (send(client_fd, (const void *)response_to_ping,
-					 strlen(response_to_ping), 0) == -1) {
+			if (send(client_fd, response_to_ping, strlen(response_to_ping),
+					 0) == -1) {
 				std::cerr << "send message failed\n";
 				return 1;
 			}
 			std::cout << "Sent PONG\n";
 		}
-		std::cout << "======================================================\n";
 	}
 
 	close(server_fd);
