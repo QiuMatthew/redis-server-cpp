@@ -8,6 +8,7 @@
 #include <cstring>
 #include <iostream>
 #include <string>
+#include <thread>
 #include <vector>
 
 int create_socket(void) {
@@ -127,7 +128,7 @@ int main(int argc, char **argv) {
 		std::cout << "Client connected\n";
 
 		// handle client
-		handle_client(client_fd);
+		std::thread(handle_client, client_fd).detach();
 	}
 
 	close(server_fd);
