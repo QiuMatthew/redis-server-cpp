@@ -128,7 +128,8 @@ int main(int argc, char **argv) {
 		std::cout << "Client connected\n";
 
 		// handle client
-		std::thread(handle_client, client_fd).detach();
+		std::thread client_thread(handle_client, client_fd);
+		client_thread.detach();
 	}
 
 	close(server_fd);
