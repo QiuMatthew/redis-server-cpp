@@ -79,20 +79,27 @@ int main(int argc, char **argv) {
 	std::cout << "Client connected\n";
 
 	while (true) {
-		std::string request_msg_str =
-			receive_message_until_delimiter(client_fd, '\n').data();
-		std::cout << "Received message length: " << request_msg_str.length()
-				  << std::endl;
-		std::cout << "Received message: " << request_msg_str << std::endl;
-		if (request_msg_str == "ping\r") {
-			std::cout << "Received PING\n";
-			const char *response_to_ping = "+PONG\r\n";
-			if (send(client_fd, (const void *)response_to_ping,
-					 strlen(response_to_ping), 0) == -1) {
-				std::cerr << "send message failed\n";
-				return 1;
-			}
+		std::vector<char> request_msg(100);
+		ssize_t bytes_received =
+			recv(client_fd, request_msg.data(), request_msg.size(), 0);
+		if (bytes_received == -1) {
+			std::cerr << "recv failed\n";
+			return 1;
 		}
+		if (bytes_received == 0) {
+			std::cout << "Client disconnected\n";
+			break;
+		}
+		// std::cout << "Received message length: " << request_msg_str.length()
+		// 		  << std::endl;
+		// std::cout << "Received message: " << request_msg_str << std::endl;
+		const char *response_to_ping = "+PONG\r\n";
+		if (send(client_fd, (const void *)response_to_ping,
+				 strlen(response_to_ping), 0) == -1) {
+			std::cerr << "send message failed\n";
+			return 1;
+		}
+		std::cout << "Sent PONG\n";
 	}
 
 	close(server_fd);
