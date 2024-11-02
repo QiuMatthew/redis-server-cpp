@@ -11,6 +11,27 @@
 #include <thread>
 #include <vector>
 
+class RedisCommand {
+   public:
+	RedisCommand(std::string raw_command) {
+		// Parse the raw command
+		command = raw_command.substr(0, raw_command.find("\r\n"));
+		raw_command = raw_command.substr(raw_command.find("\r\n") + 2);
+		while (raw_command.size() > 0) {
+			int length = std::stoi(raw_command.substr(1, 1));
+			arguments.push_back(raw_command.substr(4, length));
+			raw_command = raw_command.substr(4 + length);
+		}
+	}
+
+	std::string get_command() { return command; }
+	std::vector<std::string> get_arguments() { return arguments; }
+
+   private:
+	std::string command;
+	std::vector<std::string> arguments;
+};
+
 int create_socket(void) {
 	int server_fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (server_fd < 0) {
@@ -78,8 +99,11 @@ void handle_client(int client_fd) {
 									request_msg.begin() + bytes_received);
 		std::cout << "Received message: " << request_msg_str << std::endl;
 
-		if (request_msg_str == "*1\r\n$4\r\nPING\r\n" ||
-			request_msg_str == "*1\r\n$4\r\nping\r\n") {
+		// Parse the request message
+		RedisCommand request_command(request_msg_str);
+
+		// Handle the request
+		if (request_command.get_command() == "PING") {
 			// Handle PING command
 			const char *response_to_ping = "+PONG\r\n";
 			if (send(client_fd, response_to_ping, strlen(response_to_ping),
@@ -88,20 +112,10 @@ void handle_client(int client_fd) {
 				exit(1);
 			}
 			std::cout << "Sent PONG\n";
-		} else if (request_msg_str.find("ECHO") != std::string::npos) {
+		} else if (request_command.get_command() == "ECHO") {
 			// Handle ECHO command
-			// get the length of the message
-			int length = 0;
-			for (int i = request_msg_str.find("ECHO");
-				 i < request_msg_str.size(); i++) {
-				if (request_msg_str[i] == '$') {
-					length = std::stoi(request_msg_str.substr(i + 1, 1));
-					break;
-				}
-			}
-			int i = request_msg_str.find("ECHO");
 			std::string response_to_echo_str =
-				"+" + request_msg_str.substr(i + 10, length) + "\r\n";
+				"+" + request_command.get_arguments()[0] + "\r\n";
 			const char *response_to_echo = response_to_echo_str.c_str();
 			if (send(client_fd, response_to_echo, strlen(response_to_echo),
 					 0) == -1) {
@@ -110,6 +124,38 @@ void handle_client(int client_fd) {
 			}
 			std::cout << "Sent ECHO\n";
 		}
+		// if (request_msg_str == "*1\r\n$4\r\nPING\r\n" ||
+		// 	request_msg_str == "*1\r\n$4\r\nping\r\n") {
+		// 	// Handle PING command
+		// 	const char *response_to_ping = "+PONG\r\n";
+		// 	if (send(client_fd, response_to_ping, strlen(response_to_ping),
+		// 			 0) == -1) {
+		// 		std::cerr << "send message failed\n";
+		// 		exit(1);
+		// 	}
+		// 	std::cout << "Sent PONG\n";
+		// } else if (request_msg_str.find("ECHO") != std::string::npos) {
+		// 	// Handle ECHO command
+		// 	// get the length of the message
+		// 	int length = 0;
+		// 	for (int i = request_msg_str.find("ECHO");
+		// 		 i < request_msg_str.size(); i++) {
+		// 		if (request_msg_str[i] == '$') {
+		// 			length = std::stoi(request_msg_str.substr(i + 1, 1));
+		// 			break;
+		// 		}
+		// 	}
+		// 	int i = request_msg_str.find("ECHO");
+		// 	std::string response_to_echo_str =
+		// 		"+" + request_msg_str.substr(i + 10, length) + "\r\n";
+		// 	const char *response_to_echo = response_to_echo_str.c_str();
+		// 	if (send(client_fd, response_to_echo, strlen(response_to_echo),
+		// 			 0) == -1) {
+		// 		std::cerr << "send message failed\n";
+		// 		exit(1);
+		// 	}
+		// 	std::cout << "Sent ECHO\n";
+		// }
 	}
 	return;
 }
