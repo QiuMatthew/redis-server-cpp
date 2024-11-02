@@ -15,12 +15,26 @@ class RedisCommand {
    public:
 	RedisCommand(std::string raw_command) {
 		// Parse the raw command
-		command = raw_command.substr(0, raw_command.find("\r\n"));
+		int argc =
+			std::stoi(raw_command.substr(1, raw_command.find("\r\n") - 1));
 		raw_command = raw_command.substr(raw_command.find("\r\n") + 2);
-		while (raw_command.size() > 0) {
-			int length = std::stoi(raw_command.substr(1, 1));
-			arguments.push_back(raw_command.substr(4, length));
-			raw_command = raw_command.substr(4 + length);
+		// get the command
+		int length =
+			std::stoi(raw_command.substr(1, raw_command.find("\r\n") - 1));
+		raw_command = raw_command.substr(raw_command.find("\r\n") + 2);
+		command = raw_command.substr(0, raw_command.find("\r\n"));
+		for (char &c : command) {
+			c = toupper(c);
+		}
+		raw_command = raw_command.substr(raw_command.find("\r\n") + 2);
+		std::cout << "Command: " << command << std::endl;
+		// get the arguments
+		for (int i = 0; i < argc - 1; i++) {
+			int length =
+				std::stoi(raw_command.substr(1, raw_command.find("\r\n") - 1));
+			raw_command = raw_command.substr(raw_command.find("\r\n") + 2);
+			arguments.push_back(raw_command.substr(0, length));
+			raw_command = raw_command.substr(raw_command.find("\r\n") + 2);
 		}
 	}
 
@@ -124,38 +138,6 @@ void handle_client(int client_fd) {
 			}
 			std::cout << "Sent ECHO\n";
 		}
-		// if (request_msg_str == "*1\r\n$4\r\nPING\r\n" ||
-		// 	request_msg_str == "*1\r\n$4\r\nping\r\n") {
-		// 	// Handle PING command
-		// 	const char *response_to_ping = "+PONG\r\n";
-		// 	if (send(client_fd, response_to_ping, strlen(response_to_ping),
-		// 			 0) == -1) {
-		// 		std::cerr << "send message failed\n";
-		// 		exit(1);
-		// 	}
-		// 	std::cout << "Sent PONG\n";
-		// } else if (request_msg_str.find("ECHO") != std::string::npos) {
-		// 	// Handle ECHO command
-		// 	// get the length of the message
-		// 	int length = 0;
-		// 	for (int i = request_msg_str.find("ECHO");
-		// 		 i < request_msg_str.size(); i++) {
-		// 		if (request_msg_str[i] == '$') {
-		// 			length = std::stoi(request_msg_str.substr(i + 1, 1));
-		// 			break;
-		// 		}
-		// 	}
-		// 	int i = request_msg_str.find("ECHO");
-		// 	std::string response_to_echo_str =
-		// 		"+" + request_msg_str.substr(i + 10, length) + "\r\n";
-		// 	const char *response_to_echo = response_to_echo_str.c_str();
-		// 	if (send(client_fd, response_to_echo, strlen(response_to_echo),
-		// 			 0) == -1) {
-		// 		std::cerr << "send message failed\n";
-		// 		exit(1);
-		// 	}
-		// 	std::cout << "Sent ECHO\n";
-		// }
 	}
 	return;
 }
