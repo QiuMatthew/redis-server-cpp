@@ -78,9 +78,9 @@ void handle_client(int client_fd) {
 									request_msg.begin() + bytes_received);
 		std::cout << "Received message: " << request_msg_str << std::endl;
 
-		// Handle PING command
 		if (request_msg_str == "*1\r\n$4\r\nPING\r\n" ||
 			request_msg_str == "*1\r\n$4\r\nping\r\n") {
+			// Handle PING command
 			const char *response_to_ping = "+PONG\r\n";
 			if (send(client_fd, response_to_ping, strlen(response_to_ping),
 					 0) == -1) {
@@ -88,6 +88,27 @@ void handle_client(int client_fd) {
 				exit(1);
 			}
 			std::cout << "Sent PONG\n";
+		} else if (request_msg_str.find("ECHO") != std::string::npos) {
+			// Handle ECHO command
+			// get the length of the message
+			int length = 0;
+			for (int i = request_msg_str.find("ECHO");
+				 i < request_msg_str.size(); i++) {
+				if (request_msg_str[i] == '$') {
+					length = std::stoi(request_msg_str.substr(i + 1, 1));
+					break;
+				}
+			}
+			int i = request_msg_str.find("ECHO");
+			std::string response_to_echo_str =
+				"+" + request_msg_str.substr(i + 10, length) + "\r\n";
+			const char *response_to_echo = response_to_echo_str.c_str();
+			if (send(client_fd, response_to_echo, strlen(response_to_echo),
+					 0) == -1) {
+				std::cerr << "send message failed\n";
+				exit(1);
+			}
+			std::cout << "Sent ECHO\n";
 		}
 	}
 	return;
