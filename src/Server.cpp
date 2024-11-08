@@ -9,6 +9,7 @@
 #include <iostream>
 #include <string>
 #include <thread>
+#include <unordered_map>
 #include <vector>
 
 class RedisCommand {
@@ -22,12 +23,12 @@ class RedisCommand {
 		int length =
 			std::stoi(raw_command.substr(1, raw_command.find("\r\n") - 1));
 		raw_command = raw_command.substr(raw_command.find("\r\n") + 2);
-		command = raw_command.substr(0, raw_command.find("\r\n"));
-		for (char &c : command) {
+		command_type = raw_command.substr(0, raw_command.find("\r\n"));
+		for (char &c : command_type) {
 			c = toupper(c);
 		}
 		raw_command = raw_command.substr(raw_command.find("\r\n") + 2);
-		std::cout << "Command: " << command << std::endl;
+		std::cout << "Command: " << command_type << std::endl;
 		// get the arguments
 		for (int i = 0; i < argc - 1; i++) {
 			int length =
@@ -38,11 +39,11 @@ class RedisCommand {
 		}
 	}
 
-	std::string get_command() { return command; }
+	std::string get_command() { return command_type; }
 	std::vector<std::string> get_arguments() { return arguments; }
 
    private:
-	std::string command;
+	std::string command_type;
 	std::vector<std::string> arguments;
 };
 
@@ -97,6 +98,7 @@ int accept_socket(int server_fd, struct sockaddr_in client_addr,
 
 void handle_client(int client_fd) {
 	while (true) {
+		std::unordered_map<std::string, std::string> dict = {};
 		// get the request message
 		std::vector<char> request_msg(100);
 		ssize_t bytes_received =
@@ -138,6 +140,39 @@ void handle_client(int client_fd) {
 				exit(1);
 			}
 			std::cout << "Sent ECHO\n";
+		} else if (request_command.get_command() == "SET") {
+			// Handle SET command
+			// Add the key-value pair to the dictionary
+			if (dict.find(request_command.get_arguments()[0]) == dict.end()) {
+				dict.insert({request_command.get_arguments()[0],
+							 request_command.get_arguments()[1]});
+			} else {
+				dict[request_command.get_arguments()[0]] =
+					request_command.get_arguments()[1];
+			}
+
+			// Send the response
+			std::string response_to_set_str = "+OK\r\n";
+			const char *response_to_set = response_to_set_str.c_str();
+			if (send(client_fd, response_to_set, strlen(response_to_set), 0) ==
+				-1) {
+				std::cerr << "send message failed\n";
+				exit(1);
+			}
+			std::cout << "Sent OK\n";
+		} else if (request_command.get_command() == "GET") {
+			// Handle GET command
+			// Get the value from the dictionary
+			std::string value = dict[request_command.get_arguments()[0]];
+			std::string response_to_get_str =
+				"$" + std::to_string(value.size()) + "\r\n" + value + "\r\n";
+			const char *response_to_get = response_to_get_str.c_str();
+			if (send(client_fd, response_to_get, strlen(response_to_get), 0) ==
+				-1) {
+				std::cerr << "send message failed\n";
+				exit(1);
+			}
+			std::cout << "Sent Hello\n";
 		}
 	}
 	return;
