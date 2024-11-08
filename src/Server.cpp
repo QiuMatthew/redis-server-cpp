@@ -97,8 +97,8 @@ int accept_socket(int server_fd, struct sockaddr_in client_addr,
 }
 
 void handle_client(int client_fd) {
+	std::unordered_map<std::string, std::string> dict = {};
 	while (true) {
-		std::unordered_map<std::string, std::string> dict = {};
 		// get the request message
 		std::vector<char> request_msg(100);
 		ssize_t bytes_received =
