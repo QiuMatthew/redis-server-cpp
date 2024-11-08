@@ -172,12 +172,13 @@ void handle_client(int client_fd) {
 									  "\r\n" + value + "\r\n";
 			}
 			const char *response_to_get = response_to_get_str.c_str();
+			std::cout << "Response to GET: " << response_to_get << std::endl;
 			if (send(client_fd, response_to_get, strlen(response_to_get), 0) ==
 				-1) {
 				std::cerr << "send message failed\n";
 				exit(1);
 			}
-			std::cout << "Sent Hello\n";
+			std::cout << "Sent GET response\n";
 		}
 	}
 	return;
