@@ -97,6 +97,7 @@ int accept_socket(int server_fd, struct sockaddr_in client_addr,
 
 void handle_client(int client_fd) {
 	while (true) {
+		// get the request message
 		std::vector<char> request_msg(100);
 		ssize_t bytes_received =
 			recv(client_fd, request_msg.data(), request_msg.size(), 0);
