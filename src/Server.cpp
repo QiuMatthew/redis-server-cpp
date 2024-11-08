@@ -163,9 +163,14 @@ void handle_client(int client_fd) {
 		} else if (request_command.get_command() == "GET") {
 			// Handle GET command
 			// Get the value from the dictionary
-			std::string value = dict[request_command.get_arguments()[0]];
-			std::string response_to_get_str =
-				"$" + std::to_string(value.size()) + "\r\n" + value + "\r\n";
+			std::string response_to_get_str;
+			if (dict.find(request_command.get_arguments()[0]) == dict.end()) {
+				response_to_get_str = "$-1\r\n";
+			} else {
+				std::string value = dict[request_command.get_arguments()[0]];
+				response_to_get_str = "$" + std::to_string(value.size()) +
+									  "\r\n" + value + "\r\n";
+			}
 			const char *response_to_get = response_to_get_str.c_str();
 			if (send(client_fd, response_to_get, strlen(response_to_get), 0) ==
 				-1) {
