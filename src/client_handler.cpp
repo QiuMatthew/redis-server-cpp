@@ -83,7 +83,7 @@ void ClientHandler::handle_set(const std::string &key, const std::string &value,
 		const std::string &option = optional_args[0];
 		const std::string &time_str = optional_args[1];
 
-		if (option == "PX") {
+		if (option == "PX" || option == "px") {
 			has_expire = true;
 
 			// get current time in milliseconds since Jan 1, 1970
