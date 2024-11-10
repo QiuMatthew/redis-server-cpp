@@ -1,6 +1,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include <chrono>
 #include <cstring>
 #include <iostream>
 
@@ -37,8 +38,15 @@ void ClientHandler::handle_client() {
 		} else if (request_command.get_command_type() == "ECHO") {
 			handle_echo(request_command.get_command_args().front());
 		} else if (request_command.get_command_type() == "SET") {
-			handle_set(request_command.get_command_args()[0],
-					   request_command.get_command_args()[1]);
+			if (request_command.get_command_args().size() == 2) {
+				handle_set(request_command.get_command_args()[0],
+						   request_command.get_command_args()[1]);
+			} else if (request_command.get_command_args().size() == 4) {
+				handle_set(request_command.get_command_args()[0],
+						   request_command.get_command_args()[1],
+						   {request_command.get_command_args()[2],
+							request_command.get_command_args()[3]});
+			}
 		} else if (request_command.get_command_type() == "GET") {
 			handle_get(request_command.get_command_args()[0]);
 		}
@@ -64,12 +72,49 @@ void ClientHandler::handle_echo(const std::string &message) {
 	std::cout << "Sent ECHO\n";
 }
 
-void ClientHandler::handle_set(const std::string &key,
-							   const std::string &value) {
+void ClientHandler::handle_set(const std::string &key, const std::string &value,
+							   const std::vector<std::string> &optional_args) {
+	// Flags for expiration
+	bool has_expire = false;
+	int expire_time = 0;
+
+	// Parse the optional arguments
+	if (optional_args.size() == 2) {
+		const std::string &option = optional_args[0];
+		const std::string &time_str = optional_args[1];
+
+		if (option == "PX") {
+			has_expire = true;
+
+			// get current time in milliseconds since Jan 1, 1970
+			auto now = std::chrono::system_clock::now();
+			auto duration = now.time_since_epoch();
+			auto duration_in_ms =
+				std::chrono::duration_cast<std::chrono::milliseconds>(duration);
+			int current_time = duration_in_ms.count();
+
+			// get the expire time in milliseconds
+			expire_time = current_time + std::stoi(time_str);
+		} else {
+			std::cerr << "Invalid SET command option: " << option << "\n";
+			return;
+		}
+	}
+
+	// Set the key-value pair
 	if (data.find(key) != data.end()) {
 		data[key] = value;
 	} else {
 		data.insert({key, value});
+	}
+
+	// Set the expire time
+	if (has_expire) {
+		if (expiration.find(key) != expiration.end()) {
+			expiration[key] = std::to_string(expire_time);
+		} else {
+			expiration.insert({key, std::to_string(expire_time)});
+		}
 	}
 
 	// Send the response
@@ -84,7 +129,15 @@ void ClientHandler::handle_set(const std::string &key,
 
 void ClientHandler::handle_get(const std::string &key) {
 	std::string response_to_get_str;
+	int current_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+						   std::chrono::system_clock::now().time_since_epoch())
+						   .count();
 	if (data.find(key) == data.end()) {
+		response_to_get_str = "$-1\r\n";
+	} else if (expiration.find(key) != expiration.end() &&
+			   current_time > stoi(expiration[key])) {
+		data.erase(key);
+		expiration.erase(key);
 		response_to_get_str = "$-1\r\n";
 	} else {
 		std::string value = data[key];
