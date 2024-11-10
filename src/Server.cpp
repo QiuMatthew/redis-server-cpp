@@ -13,42 +13,8 @@
 #include <vector>
 
 #include "network_utils.h"
+#include "redis_command.h"
 #include "server.h"
-
-class RedisCommand {
-   public:
-	RedisCommand(std::string raw_command) {
-		// Parse the raw command
-		int argc =
-			std::stoi(raw_command.substr(1, raw_command.find("\r\n") - 1));
-		raw_command = raw_command.substr(raw_command.find("\r\n") + 2);
-		// get the command
-		int length =
-			std::stoi(raw_command.substr(1, raw_command.find("\r\n") - 1));
-		raw_command = raw_command.substr(raw_command.find("\r\n") + 2);
-		command_type = raw_command.substr(0, raw_command.find("\r\n"));
-		for (char &c : command_type) {
-			c = toupper(c);
-		}
-		raw_command = raw_command.substr(raw_command.find("\r\n") + 2);
-		std::cout << "Command: " << command_type << std::endl;
-		// get the arguments
-		for (int i = 0; i < argc - 1; i++) {
-			int length =
-				std::stoi(raw_command.substr(1, raw_command.find("\r\n") - 1));
-			raw_command = raw_command.substr(raw_command.find("\r\n") + 2);
-			arguments.push_back(raw_command.substr(0, length));
-			raw_command = raw_command.substr(raw_command.find("\r\n") + 2);
-		}
-	}
-
-	std::string get_command() { return command_type; }
-	std::vector<std::string> get_arguments() { return arguments; }
-
-   private:
-	std::string command_type;
-	std::vector<std::string> arguments;
-};
 
 void handle_client(int client_fd) {
 	std::unordered_map<std::string, std::string> dict = {};
@@ -74,7 +40,7 @@ void handle_client(int client_fd) {
 		RedisCommand request_command(request_msg_str);
 
 		// Handle the request
-		if (request_command.get_command() == "PING") {
+		if (request_command.get_command_type() == "PING") {
 			// Handle PING command
 			const char *response_to_ping = "+PONG\r\n";
 			if (send(client_fd, response_to_ping, strlen(response_to_ping),
@@ -83,10 +49,10 @@ void handle_client(int client_fd) {
 				exit(1);
 			}
 			std::cout << "Sent PONG\n";
-		} else if (request_command.get_command() == "ECHO") {
+		} else if (request_command.get_command_type() == "ECHO") {
 			// Handle ECHO command
 			std::string response_to_echo_str =
-				"+" + request_command.get_arguments()[0] + "\r\n";
+				"+" + request_command.get_command_args()[0] + "\r\n";
 			const char *response_to_echo = response_to_echo_str.c_str();
 			if (send(client_fd, response_to_echo, strlen(response_to_echo),
 					 0) == -1) {
@@ -94,15 +60,16 @@ void handle_client(int client_fd) {
 				exit(1);
 			}
 			std::cout << "Sent ECHO\n";
-		} else if (request_command.get_command() == "SET") {
+		} else if (request_command.get_command_type() == "SET") {
 			// Handle SET command
 			// Add the key-value pair to the dictionary
-			if (dict.find(request_command.get_arguments()[0]) == dict.end()) {
-				dict.insert({request_command.get_arguments()[0],
-							 request_command.get_arguments()[1]});
+			if (dict.find(request_command.get_command_args()[0]) ==
+				dict.end()) {
+				dict.insert({request_command.get_command_args()[0],
+							 request_command.get_command_args()[1]});
 			} else {
-				dict[request_command.get_arguments()[0]] =
-					request_command.get_arguments()[1];
+				dict[request_command.get_command_args()[0]] =
+					request_command.get_command_args()[1];
 			}
 
 			// Send the response
@@ -114,14 +81,15 @@ void handle_client(int client_fd) {
 				exit(1);
 			}
 			std::cout << "Sent OK\n";
-		} else if (request_command.get_command() == "GET") {
+		} else if (request_command.get_command_type() == "GET") {
 			// Handle GET command
 			// Get the value from the dictionary
 			std::string response_to_get_str;
-			if (dict.find(request_command.get_arguments()[0]) == dict.end()) {
+			if (dict.find(request_command.get_command_args()[0]) ==
+				dict.end()) {
 				response_to_get_str = "$-1\r\n";
 			} else {
-				std::string value = dict[request_command.get_arguments()[0]];
+				std::string value = dict[request_command.get_command_args()[0]];
 				response_to_get_str = "$" + std::to_string(value.size()) +
 									  "\r\n" + value + "\r\n";
 			}
