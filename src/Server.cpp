@@ -189,44 +189,6 @@ int main(int argc, char **argv) {
 	std::cout << std::unitbuf;
 	std::cerr << std::unitbuf;
 
-	/* // create a socket
-	int server_fd = create_socket();
-
-	// set reuse address option
-	set_socket_options(server_fd);
-
-	// set up server address
-	struct sockaddr_in server_addr;
-	server_addr.sin_family = AF_INET;
-	server_addr.sin_addr.s_addr = INADDR_ANY;
-	server_addr.sin_port = htons(6379);
-
-	// bind to port
-	bind_socket(server_fd, server_addr);
-	std::cout << "Socket bind to port 6379\n";
-
-	// start listening
-	int connection_backlog = 5;
-	listen_socket(server_fd, connection_backlog);
-	std::cout << "Waiting for a client to connect...\n";
-
-	// set up client address
-	struct sockaddr_in client_addr;
-	int client_addr_len = sizeof(client_addr);
-
-	// receive and send messages
-	while (true) {
-		// establish connection with a client
-		int client_fd = accept_socket(server_fd, client_addr, client_addr_len);
-		std::cout << "Client connected\n";
-
-		// handle client
-		std::thread client_thread(handle_client, client_fd);
-		client_thread.detach();
-	}
-
-	close(server_fd); */
-
 	Server server(6379);
 	server.start();
 	server.stop();
