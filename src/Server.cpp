@@ -12,12 +12,13 @@
 #include <unordered_map>
 #include <vector>
 
+#include "client_handler.h"
 #include "network_utils.h"
 #include "redis_command.h"
 #include "server.h"
 
 void handle_client(int client_fd) {
-	std::unordered_map<std::string, std::string> dict = {};
+	std::unordered_map<std::string, std::string> data = {};
 	while (true) {
 		// get the request message
 		std::vector<char> request_msg(100);
@@ -63,12 +64,12 @@ void handle_client(int client_fd) {
 		} else if (request_command.get_command_type() == "SET") {
 			// Handle SET command
 			// Add the key-value pair to the dictionary
-			if (dict.find(request_command.get_command_args()[0]) ==
-				dict.end()) {
-				dict.insert({request_command.get_command_args()[0],
+			if (data.find(request_command.get_command_args()[0]) ==
+				data.end()) {
+				data.insert({request_command.get_command_args()[0],
 							 request_command.get_command_args()[1]});
 			} else {
-				dict[request_command.get_command_args()[0]] =
+				data[request_command.get_command_args()[0]] =
 					request_command.get_command_args()[1];
 			}
 
@@ -85,11 +86,11 @@ void handle_client(int client_fd) {
 			// Handle GET command
 			// Get the value from the dictionary
 			std::string response_to_get_str;
-			if (dict.find(request_command.get_command_args()[0]) ==
-				dict.end()) {
+			if (data.find(request_command.get_command_args()[0]) ==
+				data.end()) {
 				response_to_get_str = "$-1\r\n";
 			} else {
-				std::string value = dict[request_command.get_command_args()[0]];
+				std::string value = data[request_command.get_command_args()[0]];
 				response_to_get_str = "$" + std::to_string(value.size()) +
 									  "\r\n" + value + "\r\n";
 			}
@@ -146,7 +147,8 @@ void Server::accept_client() {
 	std::cout << "Client connected\n";
 
 	// handle client
-	std::thread client_thread(handle_client, client_fd);
+	ClientHandler client_handler(client_fd);
+	std::thread client_thread(&ClientHandler::handle_client, client_handler);
 	client_thread.detach();
 }
 
