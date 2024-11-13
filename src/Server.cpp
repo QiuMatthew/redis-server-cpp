@@ -57,7 +57,7 @@ void Server::accept_client() {
 	std::cout << "Client connected\n";
 
 	// handle client
-	ClientHandler client_handler(client_fd);
+	ClientHandler client_handler(client_fd, this->config);
 	std::thread client_thread(&ClientHandler::handle_client, client_handler);
 	client_thread.detach();
 }

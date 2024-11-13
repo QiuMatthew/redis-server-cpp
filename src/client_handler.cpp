@@ -4,11 +4,16 @@
 #include <chrono>
 #include <cstring>
 #include <iostream>
+#include <unordered_map>
 
 #include "client_handler.h"
 #include "redis_command.h"
 
-ClientHandler::ClientHandler(int client_fd) : client_fd(client_fd) {}
+ClientHandler::ClientHandler(
+	int client_fd, std::unordered_map<std::string, std::string> config)
+	: client_fd(client_fd) {
+	this->config = config;
+}
 
 void ClientHandler::handle_client() {
 	while (true) {
@@ -150,4 +155,24 @@ void ClientHandler::handle_get(const std::string &key) {
 		exit(1);
 	}
 	std::cout << "Sent GET response\n";
+}
+
+void ClientHandler::handle_config_get(const std::string &config_name) {
+	std::string response_to_config_get_str;
+	if (config.find(config_name) == config.end()) {
+		response_to_config_get_str = "$-1\r\n";
+	} else {
+		std::string config_value = config[config_name];
+		response_to_config_get_str =
+			"*2\r\n$" + std::to_string(config_name.size()) + "\r\n" +
+			config_name + "\r\n$" + std::to_string(config_value.size()) +
+			"\r\n" + config_value + "\r\n";
+	}
+	const char *response_to_config_get = response_to_config_get_str.c_str();
+	if (send(client_fd, response_to_config_get, strlen(response_to_config_get),
+			 0) == -1) {
+		std::cerr << "send message failed\n";
+		exit(1);
+	}
+	std::cout << "Sent CONFIG GET response\n";
 }
