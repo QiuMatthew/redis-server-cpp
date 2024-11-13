@@ -54,6 +54,11 @@ void ClientHandler::handle_client() {
 			}
 		} else if (request_command.get_command_type() == "GET") {
 			handle_get(request_command.get_command_args()[0]);
+		} else if (request_command.get_command_type() == "CONFIG GET") {
+			handle_config_get(request_command.get_command_args()[0]);
+		} else {
+			std::cerr << "Invalid command: "
+					  << request_command.get_command_type() << "\n";
 		}
 	}
 }
