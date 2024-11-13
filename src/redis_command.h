@@ -13,4 +13,5 @@ class RedisCommand {
    private:
 	std::string command_type;
 	std::vector<std::string> command_args;
+	void separate_command_type_and_args(std::vector<std::string>& args);
 };
